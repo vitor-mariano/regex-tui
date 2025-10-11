@@ -39,9 +39,13 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	return m, nil
 }
 
+func (m *Model) renderContainer(s string) string {
+	return lipgloss.Place(m.width, m.height, lipgloss.Left, lipgloss.Left, s)
+}
+
 func (m Model) View() string {
 	if m.expression == nil {
-		return m.value
+		return m.renderContainer(m.value)
 	}
 
 	var b strings.Builder
@@ -61,7 +65,7 @@ func (m Model) View() string {
 
 	b.WriteString(m.value[lastIndex:])
 
-	return lipgloss.Place(m.width, m.height, lipgloss.Left, lipgloss.Left, b.String())
+	return m.renderContainer(b.String())
 }
 
 func (m *Model) SetExpression(expression *regexp.Regexp) {
