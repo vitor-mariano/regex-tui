@@ -31,7 +31,8 @@ var (
 			Background(primaryColor).
 			Bold(true).
 			Padding(0, 1).
-			MarginLeft(1)
+			MarginLeft(1).
+			MarginTop(1)
 	inputContainerStyle = lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder()).
 				Padding(0, 1)
