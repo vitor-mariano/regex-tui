@@ -11,6 +11,13 @@ import (
 	"github.com/vitor-mariano/regex-tui/pkg/regexview"
 )
 
+type inputType int
+
+const (
+	inputTypeExpression inputType = iota
+	inputTypeSubject
+)
+
 const (
 	initialExpression = "([A-Z])\\w+"
 	initialSubject    = "Hello World!"
@@ -21,8 +28,9 @@ type model struct {
 	subjectInput    textarea.Model
 	subjectView     regexview.Model
 
-	expression string
-	subject    string
+	focusedInputType inputType
+	expression       string
+	subject          string
 }
 
 func initialModel() model {
@@ -51,6 +59,14 @@ func (m model) Init() tea.Cmd {
 }
 
 func (m *model) updateInputs(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if m.focusedInputType == inputTypeSubject {
+		sm, cmd := m.subjectInput.Update(msg)
+		m.subjectInput = sm
+		m.subjectView.SetValue(m.subjectInput.Value())
+
+		return m, cmd
+	}
+
 	cmds := make([]tea.Cmd, 2)
 
 	m.expressionInput, cmds[0] = m.expressionInput.Update(msg)
@@ -69,6 +85,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.Type {
 		case tea.KeyCtrlC, tea.KeyEsc:
 			return m, tea.Quit
+		case tea.KeyTab, tea.KeyShiftTab:
+			switch m.focusedInputType {
+			case inputTypeExpression:
+				m.focusedInputType = inputTypeSubject
+				m.expressionInput.Blur()
+				m.subjectInput.Focus()
+			case inputTypeSubject:
+				m.focusedInputType = inputTypeExpression
+				m.subjectInput.Blur()
+				m.expressionInput.Focus()
+			}
+			return m, nil
 		}
 	}
 
@@ -80,7 +108,12 @@ func (m model) View() string {
 
 	b.WriteString(m.expressionInput.View())
 	b.WriteRune('\n')
-	b.WriteString(m.subjectView.View())
+
+	if m.focusedInputType == inputTypeSubject {
+		b.WriteString(m.subjectInput.View())
+	} else {
+		b.WriteString(m.subjectView.View())
+	}
 
 	return b.String()
 }
