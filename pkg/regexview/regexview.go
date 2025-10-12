@@ -6,6 +6,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/muesli/reflow/wordwrap"
 )
 
 var (
@@ -40,7 +41,11 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 }
 
 func (m *Model) renderContainer(s string) string {
-	return lipgloss.Place(m.width, m.height, lipgloss.Left, lipgloss.Left, s)
+	return lipgloss.Place(
+		m.width, m.height,
+		lipgloss.Left, lipgloss.Left,
+		wordwrap.String(s, m.width),
+	)
 }
 
 func (m Model) View() string {
