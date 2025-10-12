@@ -1,8 +1,10 @@
 .DEFAULT_GOAL := build
 
+GOPATH := $(shell go env GOPATH)
+
 .PHONY: build
 build:
-	go build -o bin/regex-tui cmd/regex-tui/main.go
+	go build -o bin/regex-tui main.go
 
 .PHONY: clean
 clean:
@@ -10,11 +12,11 @@ clean:
 
 .PHONY: install
 install:
-	cp bin/regex-tui /usr/local/bin/regex-tui
+	go install .
 
 .PHONY: uninstall
 uninstall:
-	rm -f /usr/local/bin/regex-tui
+	rm -f $(GOPATH)/bin/regex-tui
 
 .PHONY: lint
 lint:
@@ -27,7 +29,7 @@ modernize:
 
 .PHONY: run
 run:
-	go run cmd/regex-tui/main.go
+	go run main.go
 
 .PHONY: demo
 demo:
