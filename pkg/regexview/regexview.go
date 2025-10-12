@@ -11,10 +11,12 @@ import (
 
 var (
 	evenMatchStyle = lipgloss.NewStyle().
-			Background(lipgloss.Color("2")).
+			Background(lipgloss.Color("220")).
+			Foreground(lipgloss.Color("232")).
 			Bold(true)
 	oddMatchStyle = lipgloss.NewStyle().
-			Background(lipgloss.Color("3")).
+			Background(lipgloss.Color("117")).
+			Foreground(lipgloss.Color("232")).
 			Bold(true)
 )
 
