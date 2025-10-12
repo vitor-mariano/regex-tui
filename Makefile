@@ -28,3 +28,7 @@ modernize:
 .PHONY: run
 run:
 	go run cmd/regex-tui/main.go
+
+.PHONY: demo
+demo:
+	cd assets && vhs demo.tape
