@@ -21,7 +21,7 @@ const (
 )
 
 const (
-	initialExpression = "([A-Z])\\w+"
+	initialExpression = "[A-Z]\\w+"
 	initialSubject    = "Hello World!"
 )
 
