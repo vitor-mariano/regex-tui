@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textarea"
@@ -38,6 +39,8 @@ var (
 				Padding(0, 1)
 	focusedInputContainerStyle = inputContainerStyle.
 					BorderForeground(primaryColor)
+	errorInputContainerStyle = inputContainerStyle.
+					BorderForeground(lipgloss.Color("9"))
 )
 
 type model struct {
@@ -62,6 +65,10 @@ func initialModel() model {
 	m.expressionInput.SetValue(initialExpression)
 	m.expressionInput.Prompt = ""
 	m.expressionInput.Focus()
+	m.expressionInput.Validate = func(s string) error {
+		_, err := regexp.Compile(s)
+		return err
+	}
 
 	m.subjectInput.SetValue(initialSubject)
 	m.subjectInput.Prompt = ""
@@ -148,7 +155,9 @@ func (m model) View() string {
 	b.WriteRune('\n')
 
 	s := &inputContainerStyle
-	if m.focusedInputType == inputTypeExpression {
+	if m.expressionInput.Err != nil {
+		s = &errorInputContainerStyle
+	} else if m.focusedInputType == inputTypeExpression {
 		s = &focusedInputContainerStyle
 	}
 	b.WriteString(s.Render(m.expressionInput.View()))
