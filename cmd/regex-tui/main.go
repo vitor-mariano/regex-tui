@@ -27,20 +27,32 @@ const (
 
 var (
 	primaryColor = lipgloss.Color("12")
+	mutedColor   = lipgloss.Color("240")
+	lightColor   = lipgloss.Color("15")
+	errorColor   = lipgloss.Color("9")
 
 	titleStyle = lipgloss.NewStyle().
 			Background(primaryColor).
 			Bold(true).
+			Foreground(lightColor).
 			Padding(0, 1).
 			MarginLeft(1).
 			MarginTop(1)
+
 	inputContainerStyle = lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder()).
 				Padding(0, 1)
 	focusedInputContainerStyle = inputContainerStyle.
 					BorderForeground(primaryColor)
 	errorInputContainerStyle = inputContainerStyle.
-					BorderForeground(lipgloss.Color("9"))
+					BorderForeground(errorColor)
+
+	helpContainerStyle = lipgloss.NewStyle().
+				MarginLeft(1)
+	helpStyle = lipgloss.NewStyle().
+			Foreground(mutedColor)
+	helpCommandStyle = helpStyle.
+				Bold(true)
 )
 
 type model struct {
@@ -64,6 +76,7 @@ func initialModel() model {
 
 	m.expressionInput.SetValue(initialExpression)
 	m.expressionInput.Prompt = ""
+	m.expressionInput.Placeholder = "Expression"
 	m.expressionInput.Focus()
 	m.expressionInput.Validate = func(s string) error {
 		_, err := regexp.Compile(s)
@@ -73,6 +86,9 @@ func initialModel() model {
 	m.subjectInput.SetValue(initialSubject)
 	m.subjectInput.Prompt = ""
 	m.subjectInput.ShowLineNumbers = false
+	m.subjectInput.FocusedStyle = textarea.Style{
+		CursorLine: lipgloss.NewStyle().UnsetBackground(),
+	}
 
 	m.subjectView.SetExpressionString(initialExpression)
 	m.subjectView.SetValue(initialSubject)
@@ -168,6 +184,13 @@ func (m model) View() string {
 	} else {
 		b.WriteString(inputContainerStyle.Render(m.subjectView.View()))
 	}
+	b.WriteRune('\n')
+
+	h := helpCommandStyle.Render("esc/ctrl+c ") +
+		helpStyle.Render("exit • ") +
+		helpCommandStyle.Render("tab ") +
+		helpStyle.Render("switch input")
+	b.WriteString(helpContainerStyle.Render(h))
 
 	return b.String()
 }
