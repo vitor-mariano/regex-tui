@@ -7,6 +7,7 @@ import (
 	"github.com/charmbracelet/lipgloss/v2"
 	"github.com/vitor-mariano/regex-tui/internal/components/expression"
 	"github.com/vitor-mariano/regex-tui/internal/components/subject"
+	"github.com/vitor-mariano/regex-tui/internal/styles"
 	"github.com/vitor-mariano/regex-tui/pkg/components/multiselect"
 )
 
@@ -151,7 +152,7 @@ func (m model) View() tea.View {
 		optionsLayer := lipgloss.NewLayer(
 			lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder()).
-				BorderForeground(lipgloss.Color("240")).
+				BorderForeground(styles.MutedColor).
 				Padding(1, 4, 1, 2).
 				Render(m.options.View()),
 		)

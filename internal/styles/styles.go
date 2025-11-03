@@ -10,6 +10,7 @@ var (
 
 	InputContainerStyle = lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder()).
+				BorderForeground(MutedColor).
 				Padding(0, 1)
 	FocusedInputContainerStyle = InputContainerStyle.
 					BorderForeground(PrimaryColor)
