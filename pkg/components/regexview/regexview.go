@@ -21,6 +21,7 @@ var (
 
 type Model struct {
 	expression    *regexp.Regexp
+	baseExpStr    string
 	global        bool
 	value         string
 	width, height int
@@ -71,20 +72,35 @@ func (m *Model) View() string {
 	return m.renderContainer(b.String())
 }
 
-func (m *Model) SetExpression(expression *regexp.Regexp) {
-	m.expression = expression
+func (m *Model) setRegexp(expression string) error {
+	expr, err := regexp.Compile(expression)
+	if err == nil {
+		m.expression = expr
+	}
+
+	return err
 }
 
-func (m *Model) SetExpressionString(expression string) error {
-	expr, err := regexp.Compile(expression)
-
-	m.SetExpression(expr)
+func (m *Model) SetExpression(expression string) error {
+	err := m.setRegexp(expression)
+	if err == nil {
+		m.baseExpStr = expression
+	}
 
 	return err
 }
 
 func (m *Model) SetGlobal(global bool) {
 	m.global = global
+}
+
+func (m *Model) SetInsensitive(insensitive bool) {
+	prefix := ""
+	if insensitive {
+		prefix = "(?i)"
+	}
+
+	m.setRegexp(prefix + m.baseExpStr)
 }
 
 func (m *Model) SetValue(value string) {

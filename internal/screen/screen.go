@@ -35,7 +35,8 @@ type model struct {
 }
 
 const (
-	globalOption = "Global"
+	globalOption      = "Global"
+	insensitiveOption = "Insensitive"
 )
 
 func New() model {
@@ -44,10 +45,13 @@ func New() model {
 
 	si := subject.New(initialSubject, initialExpression)
 
-	mi := multiselect.New([]string{globalOption})
+	mi := multiselect.New([]string{globalOption, insensitiveOption})
 	mi.OnToggle(func(item string, selected bool) {
-		if item == globalOption {
+		switch item {
+		case globalOption:
 			si.GetView().SetGlobal(selected)
+		case insensitiveOption:
+			si.GetView().SetInsensitive(selected)
 		}
 	})
 	mi.SetSelected(globalOption)
@@ -80,7 +84,7 @@ func (m *model) updateInputs(msg tea.Msg) tea.Cmd {
 	}
 
 	cmd = m.expressionInput.Update(msg)
-	m.subjectInput.SetExpressionString(m.expressionInput.GetInput().Value())
+	m.subjectInput.SetExpression(m.expressionInput.GetInput().Value())
 
 	return cmd
 }

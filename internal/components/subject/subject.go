@@ -31,7 +31,7 @@ func New(initialValue, initialExpression string) *Model {
 	m.ShowLineNumbers = false
 
 	sv := regexview.New(0, 0)
-	sv.SetExpressionString(initialExpression)
+	sv.SetExpression(initialExpression)
 	sv.SetValue(initialValue)
 
 	return &Model{input: m, view: sv}
@@ -84,6 +84,6 @@ func (m *Model) GetView() *regexview.Model {
 	return m.view
 }
 
-func (m *Model) SetExpressionString(expression string) error {
-	return m.view.SetExpressionString(expression)
+func (m *Model) SetExpression(expression string) error {
+	return m.view.SetExpression(expression)
 }
