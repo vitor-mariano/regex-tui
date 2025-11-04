@@ -6,8 +6,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea/v2"
 	"github.com/charmbracelet/lipgloss/v2"
 	"github.com/vitor-mariano/regex-tui/internal/components/expression"
+	"github.com/vitor-mariano/regex-tui/internal/components/options"
 	"github.com/vitor-mariano/regex-tui/internal/components/subject"
-	"github.com/vitor-mariano/regex-tui/internal/styles"
 	"github.com/vitor-mariano/regex-tui/pkg/components/multiselect"
 )
 
@@ -24,20 +24,14 @@ const (
 )
 
 type model struct {
-	expressionInput     *expression.Model
-	subjectInput        *subject.Model
-	options             *multiselect.Model
-	isOptionsDialogOpen bool
-	help                help.Model
+	expressionInput *expression.Model
+	subjectInput    *subject.Model
+	options         *options.Model
+	help            help.Model
 
 	focusedInputType inputType
 	width, height    int
 }
-
-const (
-	globalOption      = "Global"
-	insensitiveOption = "Insensitive"
-)
 
 func New() model {
 	ei := expression.New(initialExpression)
@@ -45,21 +39,20 @@ func New() model {
 
 	si := subject.New(initialSubject, initialExpression)
 
-	mi := multiselect.New([]string{globalOption, insensitiveOption})
-	mi.OnToggle(func(item string, selected bool) {
+	d := options.New()
+	d.OnToggle(func(item string, selected bool) {
 		switch item {
-		case globalOption:
+		case options.GlobalOption:
 			si.GetView().SetGlobal(selected)
-		case insensitiveOption:
+		case options.InsensitiveOption:
 			si.GetView().SetInsensitive(selected)
 		}
 	})
-	mi.SetSelected(globalOption)
 
 	return model{
 		expressionInput: ei,
 		subjectInput:    si,
-		options:         mi,
+		options:         d,
 		help:            help.New(),
 	}
 }
@@ -71,43 +64,19 @@ func (m model) Init() tea.Cmd {
 func (m *model) setSize(width, height int) {
 	const subjectVSpacing = 8
 
+	m.width = width
+	m.height = height
 	m.expressionInput.SetWidth(width)
 	m.subjectInput.SetSize(width, height-subjectVSpacing)
 }
 
-func (m *model) updateInputs(msg tea.Msg) tea.Cmd {
-	var cmd tea.Cmd
-	if m.focusedInputType == inputTypeSubject {
-		cmd = m.subjectInput.Update(msg)
-
-		return cmd
-	}
-
-	cmd = m.expressionInput.Update(msg)
-	m.subjectInput.SetExpression(m.expressionInput.GetInput().Value())
-
-	return cmd
-}
-
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *model) updateScreen(msg tea.Msg) tea.Cmd {
 	cmds := make([]tea.Cmd, 0, 2)
 
 	switch msg := msg.(type) {
-	case tea.WindowSizeMsg:
-		m.setSize(msg.Width, msg.Height)
-		m.width = msg.Width
-		m.height = msg.Height
-
 	case tea.KeyPressMsg:
 		switch {
-		case key.Matches(msg, keys.Exit):
-			return m, tea.Quit
-
 		case key.Matches(msg, keys.SwitchInput):
-			if m.isOptionsDialogOpen {
-				break
-			}
-
 			var cmd tea.Cmd
 			switch m.focusedInputType {
 			case inputTypeExpression:
@@ -124,14 +93,43 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmds = append(cmds, cmd)
 
 		case key.Matches(msg, keys.ToggleOptions):
-			m.isOptionsDialogOpen = !m.isOptionsDialogOpen
+			if !m.options.IsOpen() {
+				m.options.Open()
+			}
 		}
 	}
 
-	if m.isOptionsDialogOpen {
+	if m.focusedInputType == inputTypeSubject {
+		cmds = append(cmds, m.subjectInput.Update(msg))
+	} else {
+		cmds = append(cmds, m.expressionInput.Update(msg))
+		m.subjectInput.SetExpression(m.expressionInput.GetInput().Value())
+	}
+
+	return tea.Batch(cmds...)
+}
+
+func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	cmds := make([]tea.Cmd, 0, 2)
+
+	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.setSize(msg.Width, msg.Height)
+
+	case tea.KeyPressMsg:
+		if key.Matches(msg, keys.Exit) {
+			if m.options.IsOpen() {
+				break
+			}
+
+			return m, tea.Quit
+		}
+	}
+
+	if m.options.IsOpen() {
 		cmds = append(cmds, m.options.Update(msg))
 	} else {
-		cmds = append(cmds, m.updateInputs(msg))
+		cmds = append(cmds, m.updateScreen(msg))
 	}
 
 	return m, tea.Batch(cmds...)
@@ -139,7 +137,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) View() tea.View {
 	var helpKeyMap help.KeyMap = keys
-	if m.isOptionsDialogOpen {
+	if m.options.IsOpen() {
 		helpKeyMap = multiselect.Keys
 	}
 
@@ -152,14 +150,8 @@ func (m model) View() tea.View {
 	))
 
 	layers := []*lipgloss.Layer{baseLayer}
-	if m.isOptionsDialogOpen {
-		optionsLayer := lipgloss.NewLayer(
-			lipgloss.NewStyle().
-				Border(lipgloss.RoundedBorder()).
-				BorderForeground(styles.MutedColor).
-				Padding(1, 4, 1, 2).
-				Render(m.options.View()),
-		)
+	if m.options.IsOpen() {
+		optionsLayer := lipgloss.NewLayer(m.options.View())
 		optionsLayer.X((m.width - optionsLayer.GetWidth()) / 2)
 		optionsLayer.Y((m.height - optionsLayer.GetHeight()) / 2)
 
