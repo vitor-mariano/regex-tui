@@ -70,10 +70,10 @@ func (m *Model) SetSize(width, height int) {
 
 	m.width = width
 	m.height = height
-	m.input.SetWidth(width)
+	m.input.SetWidth(width - subjectHSpacing)
 	m.input.SetHeight(height)
 
-	m.view.SetSize(width-subjectHSpacing, height)
+	m.view.SetSize(width-subjectHSpacing-1, height)
 }
 
 func (m *Model) GetInput() *textarea.Model {
