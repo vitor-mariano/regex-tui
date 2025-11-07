@@ -10,6 +10,11 @@ build:
 clean:
 	rm -f bin/regex-tui
 
+.PHONY: debug
+debug:
+	go build -gcflags="-N -l" -o bin/regex-tui main.go
+	./bin/regex-tui
+
 .PHONY: install
 install:
 	go install .
