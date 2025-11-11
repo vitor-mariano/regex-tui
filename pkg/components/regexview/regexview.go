@@ -6,8 +6,8 @@ import (
 	"github.com/charmbracelet/lipgloss/v2"
 	"github.com/muesli/reflow/wordwrap"
 	. "github.com/vitor-mariano/regex-tui/pkg/regex"
-	"github.com/vitor-mariano/regex-tui/pkg/regex/pcre"
 	"github.com/vitor-mariano/regex-tui/pkg/regex/re2"
+	"github.com/vitor-mariano/regex-tui/pkg/regex/regexp2"
 )
 
 var (
@@ -26,7 +26,7 @@ type Model struct {
 	baseExpStr    string
 	global        bool
 	insensitive   bool
-	pcre          bool
+	regexp2       bool
 	value         string
 	width, height int
 }
@@ -85,8 +85,8 @@ func (m *Model) setRegexp(expression string) error {
 
 	var err error
 	var regex Regex
-	if m.pcre {
-		regex, err = pcre.New(combined)
+	if m.regexp2 {
+		regex, err = regexp2.New(combined)
 	} else {
 		regex, err = re2.New(combined)
 	}
@@ -116,8 +116,8 @@ func (m *Model) SetInsensitive(insensitive bool) {
 	m.setRegexp(m.baseExpStr)
 }
 
-func (m *Model) SetPCRE(pcre bool) {
-	m.pcre = pcre
+func (m *Model) SetRegexp2(regexp2 bool) {
+	m.regexp2 = regexp2
 	m.setRegexp(m.baseExpStr)
 }
 

@@ -5,7 +5,7 @@ A terminal user interface (TUI) application for testing and visualizing regular 
 ## Features
 
 - Interactive regex editor with live validation
-- RE2 engine by default; PCRE option
+- RE2 engine by default; [regexp2](https://github.com/dlclark/regexp2) option with partial PCRE compatibility
 - Multi-line text input for testing
 - Visual highlighting of regex matches with alternating colors
 - Real-time feedback as you type the expression

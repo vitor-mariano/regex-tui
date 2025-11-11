@@ -4,24 +4,24 @@ import (
 	"github.com/charmbracelet/bubbles/v2/textinput"
 	tea "github.com/charmbracelet/bubbletea/v2"
 	"github.com/vitor-mariano/regex-tui/internal/styles"
-	"github.com/vitor-mariano/regex-tui/pkg/regex/pcre"
 	"github.com/vitor-mariano/regex-tui/pkg/regex/re2"
+	"github.com/vitor-mariano/regex-tui/pkg/regex/regexp2"
 )
 
 type Model struct {
-	input textinput.Model
-	width int
-	pcre  bool
+	input   textinput.Model
+	width   int
+	regexp2 bool
 }
 
-func newValidate(usePCRE bool) func(s string) error {
-	if usePCRE {
+func newValidate(useRegexp2 bool) func(s string) error {
+	if useRegexp2 {
 		return func(s string) error {
 			if s == "" {
 				return nil
 			}
 
-			_, err := pcre.New(s)
+			_, err := regexp2.New(s)
 			return err
 		}
 	}
@@ -50,7 +50,7 @@ func New(initialValue string) *Model {
 	m.Placeholder = "Expression"
 
 	model := &Model{input: m}
-	model.input.Validate = newValidate(model.pcre)
+	model.input.Validate = newValidate(model.regexp2)
 
 	return model
 }
@@ -86,9 +86,9 @@ func (m *Model) GetInput() *textinput.Model {
 	return &m.input
 }
 
-func (m *Model) SetPCRE(enabled bool) {
-	m.pcre = enabled
-	m.input.Validate = newValidate(m.pcre)
+func (m *Model) SetRegexp2(enabled bool) {
+	m.regexp2 = enabled
+	m.input.Validate = newValidate(m.regexp2)
 
 	m.input.SetValue(m.input.Value())
 }

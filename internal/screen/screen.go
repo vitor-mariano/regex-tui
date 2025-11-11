@@ -46,9 +46,9 @@ func New() model {
 			si.GetView().SetGlobal(selected)
 		case options.InsensitiveOption:
 			si.GetView().SetInsensitive(selected)
-		case options.PCREOption:
-			si.GetView().SetPCRE(selected)
-			ei.SetPCRE(selected)
+		case options.Regexp2Option:
+			si.GetView().SetRegexp2(selected)
+			ei.SetRegexp2(selected)
 		}
 
 	})
