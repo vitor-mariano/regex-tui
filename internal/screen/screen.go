@@ -34,10 +34,10 @@ type model struct {
 }
 
 func New() model {
-	ei := expression.New(initialExpression)
-	ei.GetInput().Focus()
-
 	si := subject.New(initialSubject, initialExpression)
+
+	ei := expression.New(initialExpression, si.GetView())
+	ei.GetInput().Focus()
 
 	d := options.New()
 	d.OnToggle(func(item string, selected bool) {
@@ -48,9 +48,7 @@ func New() model {
 			si.GetView().SetInsensitive(selected)
 		case options.Regexp2Option:
 			si.GetView().SetRegexp2(selected)
-			ei.SetRegexp2(selected)
 		}
-
 	})
 
 	return model{

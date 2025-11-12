@@ -76,20 +76,21 @@ func (m *Model) View() string {
 	return m.renderContainer(b.String())
 }
 
+func (m *Model) newRegexp(expression string) (Regex, error) {
+	if m.regexp2 {
+		return regexp2.New(expression)
+	}
+
+	return re2.New(expression)
+}
+
 func (m *Model) setRegexp(expression string) error {
 	prefix := ""
 	if m.insensitive {
 		prefix = "(?i)"
 	}
-	combined := prefix + expression
 
-	var err error
-	var regex Regex
-	if m.regexp2 {
-		regex, err = regexp2.New(combined)
-	} else {
-		regex, err = re2.New(combined)
-	}
+	regex, err := m.newRegexp(prefix + expression)
 	if err != nil {
 		return err
 	}
@@ -116,9 +117,9 @@ func (m *Model) SetInsensitive(insensitive bool) {
 	m.setRegexp(m.baseExpStr)
 }
 
-func (m *Model) SetRegexp2(regexp2 bool) {
+func (m *Model) SetRegexp2(regexp2 bool) error {
 	m.regexp2 = regexp2
-	m.setRegexp(m.baseExpStr)
+	return m.setRegexp(m.baseExpStr)
 }
 
 func (m *Model) SetValue(value string) {
@@ -136,4 +137,9 @@ func (m *Model) SetHeight(height int) {
 func (m *Model) SetSize(width, height int) {
 	m.SetWidth(width)
 	m.SetHeight(height)
+}
+
+func (m *Model) Validate(expression string) error {
+	_, err := m.newRegexp(expression)
+	return err
 }
