@@ -19,17 +19,47 @@ var (
 			Background(lipgloss.Color("117")).
 			Foreground(lipgloss.Color("232")).
 			Bold(true)
+	whitespaceStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("242"))
+	evenMatchWhitespaceStyle = evenMatchStyle.
+					Foreground(lipgloss.Color("172"))
+	oddMatchWhitespaceStyle = oddMatchStyle.
+				Foreground(lipgloss.Color("25"))
 )
+
+func whitespaceStyleFor(matchStyle *lipgloss.Style) lipgloss.Style {
+	if matchStyle == &evenMatchStyle {
+		return evenMatchWhitespaceStyle
+	}
+	if matchStyle == &oddMatchStyle {
+		return oddMatchWhitespaceStyle
+	}
+	return whitespaceStyle
+}
+
+func renderChar(r rune, matchStyle *lipgloss.Style) string {
+	switch r {
+	case ' ':
+		return whitespaceStyleFor(matchStyle).Render("·")
+	case '\n':
+		return whitespaceStyleFor(matchStyle).Render("↵") + "\n"
+	default:
+		if matchStyle != nil {
+			return matchStyle.Render(string(r))
+		}
+		return string(r)
+	}
+}
 
 type Model struct {
 	expression    Regex
 	baseExpStr    string
-	global        bool
-	insensitive   bool
-	regexp2       bool
 	value         string
 	width, height int
 	scrollYOffset int
+	global        bool
+	insensitive   bool
+	regexp2       bool
 }
 
 func New(width, height int) *Model {
@@ -68,30 +98,36 @@ func (m *Model) renderContainer(s string) string {
 
 func (m *Model) View() string {
 	if m.expression == nil {
-		return m.renderContainer(m.value)
+		var b strings.Builder
+		for _, r := range m.value {
+			b.WriteString(renderChar(r, nil))
+		}
+		return m.renderContainer(b.String())
 	}
-
-	var b strings.Builder
-	lastIndex := 0
 
 	var matches [][]int
 	if m.global {
 		matches = m.expression.FindAllStringIndex(m.value, -1)
-	} else {
-		matches = [][]int{m.expression.FindStringIndex(m.value)}
+	} else if match := m.expression.FindStringIndex(m.value); match != nil {
+		matches = [][]int{match}
 	}
+
+	matchStyles := make(map[int]*lipgloss.Style)
 	for i, match := range matches {
-		s := &evenMatchStyle
+		style := &evenMatchStyle
 		if i%2 == 1 {
-			s = &oddMatchStyle
+			style = &oddMatchStyle
 		}
-
-		b.WriteString(m.value[lastIndex:match[0]])
-		b.WriteString(s.Render(m.value[match[0]:match[1]]))
-		lastIndex = match[1]
+		for pos := match[0]; pos < match[1]; pos++ {
+			matchStyles[pos] = style
+		}
 	}
 
-	b.WriteString(m.value[lastIndex:])
+	var b strings.Builder
+	for i, r := range m.value {
+		style := matchStyles[i]
+		b.WriteString(renderChar(r, style))
+	}
 
 	return m.renderContainer(b.String())
 }

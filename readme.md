@@ -120,7 +120,6 @@ cat file.txt | regex-tui -r "\w+" --no-global --insensitive --regexp2
 
 ## Roadmap
 
-- Visualize whitespaces
 - Add mouse support
 
 ## Development
