@@ -1,6 +1,8 @@
 package screen
 
 import (
+	"fmt"
+	"log"
 	"os"
 	"os/exec"
 
@@ -8,6 +10,7 @@ import (
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/vitor-mariano/regex-tui/internal/clipboard"
 	"github.com/vitor-mariano/regex-tui/internal/components/expression"
 	"github.com/vitor-mariano/regex-tui/internal/components/options"
 	"github.com/vitor-mariano/regex-tui/internal/components/subject"
@@ -151,6 +154,7 @@ func (m *model) openEditor() tea.Cmd {
 func (m *model) updateScreen(msg tea.Msg) tea.Cmd {
 	cmds := make([]tea.Cmd, 0, 2)
 
+	var shouldCopyRegexp bool
 	switch msg := msg.(type) {
 	case tea.KeyPressMsg:
 		switch {
@@ -175,6 +179,9 @@ func (m *model) updateScreen(msg tea.Msg) tea.Cmd {
 				m.options.Open()
 			}
 
+		case key.Matches(msg, keys.CopyRegexp):
+			shouldCopyRegexp = true
+
 		case key.Matches(msg, keys.OpenEditor):
 			return m.openEditor()
 		}
@@ -184,6 +191,14 @@ func (m *model) updateScreen(msg tea.Msg) tea.Cmd {
 		cmds = append(cmds, m.subjectInput.Update(msg))
 	} else {
 		cmds = append(cmds, m.expressionInput.Update(msg))
+
+		// Check whether should copy the regexp
+		if shouldCopyRegexp {
+			if err := clipboard.WriteAll(m.expressionInput.GetInput().Value()); err != nil {
+				fmt.Fprintf(os.Stderr, "failed to write to clipboard: %v\n", err)
+			}
+		}
+
 		m.subjectInput.SetExpression(m.expressionInput.GetInput().Value())
 	}
 
