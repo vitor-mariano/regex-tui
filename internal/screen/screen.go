@@ -2,7 +2,6 @@ package screen
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 
