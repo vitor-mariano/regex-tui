@@ -8,6 +8,7 @@ import (
 	"os"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/vitor-mariano/regex-tui/internal/clipboard"
 	"github.com/vitor-mariano/regex-tui/internal/screen"
 	"github.com/vitor-mariano/regex-tui/internal/tty"
 )
@@ -19,6 +20,10 @@ const (
 
 func main() {
 	hasStdin := hasStdin()
+
+	if err := clipboard.Initialize(); err != nil {
+		log.Fatalf("failed to initialize clipboard: %v\n", err)
+	} // Initialize clipboard
 
 	config := getInitialConfig()
 

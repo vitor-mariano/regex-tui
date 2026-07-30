@@ -7,6 +7,7 @@ type keyMap struct {
 	SwitchInput   key.Binding
 	ToggleOptions key.Binding
 	OpenEditor    key.Binding
+	CopyRegexp    key.Binding
 }
 
 var keys = keyMap{
@@ -26,6 +27,10 @@ var keys = keyMap{
 		key.WithKeys("ctrl+o"),
 		key.WithHelp("ctrl+o", "edit text"),
 	),
+	CopyRegexp: key.NewBinding(
+		key.WithKeys("ctrl+y"),
+		key.WithHelp("ctrl+y", "copy regexp"),
+	),
 }
 
 func (k keyMap) FullHelp() [][]key.Binding {
@@ -36,5 +41,5 @@ func (k keyMap) FullHelp() [][]key.Binding {
 }
 
 func (k keyMap) ShortHelp() []key.Binding {
-	return []key.Binding{k.Exit, k.SwitchInput, k.ToggleOptions, k.OpenEditor}
+	return []key.Binding{k.Exit, k.SwitchInput, k.ToggleOptions, k.OpenEditor, k.CopyRegexp}
 }
