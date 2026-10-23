@@ -9,10 +9,11 @@ import (
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
-	"github.com/vitor-mariano/regex-tui/internal/clipboard"
+	"github.com/atotto/clipboard"
 	"github.com/vitor-mariano/regex-tui/internal/components/expression"
 	"github.com/vitor-mariano/regex-tui/internal/components/options"
 	"github.com/vitor-mariano/regex-tui/internal/components/subject"
+	"github.com/vitor-mariano/regex-tui/internal/styles"
 	"github.com/vitor-mariano/regex-tui/pkg/components/multiselect"
 )
 
@@ -45,6 +46,8 @@ type model struct {
 
 	focusedInputType inputType
 	width, height    int
+	status           string
+	statusError      bool
 }
 
 func New(config Config) model {
@@ -153,9 +156,22 @@ func (m *model) openEditor() tea.Cmd {
 func (m *model) updateScreen(msg tea.Msg) tea.Cmd {
 	cmds := make([]tea.Cmd, 0, 2)
 
-	var shouldCopyRegexp bool
 	switch msg := msg.(type) {
 	case tea.KeyPressMsg:
+		if key.Matches(msg, keys.CopyRegexp) {
+			if err := clipboard.WriteAll(m.expressionInput.GetInput().Value()); err != nil {
+				m.status = fmt.Sprintf("copy failed: %v", err)
+				m.statusError = true
+			} else {
+				m.status = "copied regexp"
+				m.statusError = false
+			}
+			return nil
+		}
+
+		m.status = ""
+		m.statusError = false
+
 		switch {
 		case key.Matches(msg, keys.SwitchInput):
 			var cmd tea.Cmd
@@ -178,9 +194,6 @@ func (m *model) updateScreen(msg tea.Msg) tea.Cmd {
 				m.options.Open()
 			}
 
-		case key.Matches(msg, keys.CopyRegexp):
-			shouldCopyRegexp = true
-
 		case key.Matches(msg, keys.OpenEditor):
 			return m.openEditor()
 		}
@@ -190,14 +203,6 @@ func (m *model) updateScreen(msg tea.Msg) tea.Cmd {
 		cmds = append(cmds, m.subjectInput.Update(msg))
 	} else {
 		cmds = append(cmds, m.expressionInput.Update(msg))
-
-		// Check whether should copy the regexp
-		if shouldCopyRegexp {
-			if err := clipboard.WriteAll(m.expressionInput.GetInput().Value()); err != nil {
-				fmt.Fprintf(os.Stderr, "failed to write to clipboard: %v\n", err)
-			}
-		}
-
 		m.subjectInput.SetExpression(m.expressionInput.GetInput().Value())
 	}
 
@@ -246,12 +251,23 @@ func (m model) View() tea.View {
 		helpKeyMap = multiselect.Keys
 	}
 
+	footer := m.help.View(helpKeyMap)
+	if m.status != "" {
+		statusStyle := lipgloss.NewStyle()
+		if m.statusError {
+			statusStyle = statusStyle.Foreground(styles.ErrorColor)
+		} else {
+			statusStyle = statusStyle.Foreground(styles.MutedColor)
+		}
+		footer = statusStyle.Render(m.status)
+	}
+
 	baseLayer := lipgloss.NewLayer(lipgloss.JoinVertical(
 		lipgloss.Left,
 		title,
 		m.expressionInput.View(),
 		m.subjectInput.View(),
-		m.help.View(helpKeyMap),
+		footer,
 	))
 
 	layers := []*lipgloss.Layer{baseLayer}

@@ -131,6 +131,7 @@ To disable at launch, use `--no-whitespaces`. To toggle at runtime, open the opt
 - **Tab**: Switch between regex input and text input
 - **Ctrl+P**: Open the options dialog to toggle regex flags
 - **Ctrl+O**: Open text content in an external editor (uses `$EDITOR` environment variable)
+- **Ctrl+Y**: Copy the regex expression to the clipboard
 - **Esc** or **Ctrl+C**: Exit the application
 
 ## Roadmap

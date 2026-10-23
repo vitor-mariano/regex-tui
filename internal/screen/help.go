@@ -36,7 +36,7 @@ var keys = keyMap{
 func (k keyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
 		{k.Exit, k.SwitchInput},
-		{k.ToggleOptions, k.OpenEditor},
+		{k.ToggleOptions, k.OpenEditor, k.CopyRegexp},
 	}
 }
 
