@@ -1,6 +1,7 @@
 package screen
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 
@@ -8,9 +9,11 @@ import (
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/atotto/clipboard"
 	"github.com/vitor-mariano/regex-tui/internal/components/expression"
 	"github.com/vitor-mariano/regex-tui/internal/components/options"
 	"github.com/vitor-mariano/regex-tui/internal/components/subject"
+	"github.com/vitor-mariano/regex-tui/internal/styles"
 	"github.com/vitor-mariano/regex-tui/pkg/components/multiselect"
 )
 
@@ -43,6 +46,8 @@ type model struct {
 
 	focusedInputType inputType
 	width, height    int
+	status           string
+	statusError      bool
 }
 
 func New(config Config) model {
@@ -153,6 +158,20 @@ func (m *model) updateScreen(msg tea.Msg) tea.Cmd {
 
 	switch msg := msg.(type) {
 	case tea.KeyPressMsg:
+		if key.Matches(msg, keys.CopyRegexp) {
+			if err := clipboard.WriteAll(m.expressionInput.GetInput().Value()); err != nil {
+				m.status = fmt.Sprintf("copy failed: %v", err)
+				m.statusError = true
+			} else {
+				m.status = "copied regexp"
+				m.statusError = false
+			}
+			return nil
+		}
+
+		m.status = ""
+		m.statusError = false
+
 		switch {
 		case key.Matches(msg, keys.SwitchInput):
 			var cmd tea.Cmd
@@ -232,12 +251,23 @@ func (m model) View() tea.View {
 		helpKeyMap = multiselect.Keys
 	}
 
+	footer := m.help.View(helpKeyMap)
+	if m.status != "" {
+		statusStyle := lipgloss.NewStyle()
+		if m.statusError {
+			statusStyle = statusStyle.Foreground(styles.ErrorColor)
+		} else {
+			statusStyle = statusStyle.Foreground(styles.MutedColor)
+		}
+		footer = statusStyle.Render(m.status)
+	}
+
 	baseLayer := lipgloss.NewLayer(lipgloss.JoinVertical(
 		lipgloss.Left,
 		title,
 		m.expressionInput.View(),
 		m.subjectInput.View(),
-		m.help.View(helpKeyMap),
+		footer,
 	))
 
 	layers := []*lipgloss.Layer{baseLayer}
