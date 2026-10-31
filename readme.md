@@ -1,5 +1,7 @@
 # Regex TUI
 
+[![regex-tui on The Terminal Index](https://cli.masoko.net/badge/regex-tui.svg)](https://cli.masoko.net/tools/regex-tui/)
+
 A terminal user interface (TUI) application for testing and visualizing regular expressions in real-time.
 
 ## Features
