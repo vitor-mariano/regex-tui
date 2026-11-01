@@ -38,6 +38,10 @@ install:
 uninstall:
 	rm -f $(GOPATH)/bin/regex-tui
 
+.PHONY: test
+test:
+	go test ./...
+
 .PHONY: lint
 lint:
 	go vet ./...
