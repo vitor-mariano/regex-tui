@@ -42,6 +42,11 @@ uninstall:
 test:
 	go test ./...
 
+# Refresh testdata/*.golden snapshots after intentional UI changes.
+.PHONY: test-update
+test-update:
+	go test ./pkg/components/regexview/ -update
+
 .PHONY: lint
 lint:
 	go vet ./...
