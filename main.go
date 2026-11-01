@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -16,6 +17,8 @@ const (
 	defaultRegex = "[A-Z]\\w+"
 	defaultText  = "Hello World!"
 )
+
+var errTextWithStdin = errors.New("error: cannot use --text/-t flag when reading from stdin")
 
 func main() {
 	hasStdin := hasStdin()
@@ -50,27 +53,39 @@ func hasStdin() bool {
 }
 
 func getInitialConfig() screen.Config {
-	empty := flag.Bool("empty", false, "Start with empty expression and text")
-	flag.BoolVar(empty, "e", false, "Start with empty expression and text (shorthand)")
+	cfg, err := parseConfig(os.Args[1:], os.Stdin, hasStdin())
+	if err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			os.Exit(0)
+		}
+		log.Fatal(err)
+	}
+	return cfg
+}
 
-	regex := flag.String("regex", "", "Initial regex pattern")
-	flag.StringVar(regex, "r", "", "Initial regex pattern (shorthand)")
+func parseConfig(args []string, stdin io.Reader, stdinIsPipe bool) (screen.Config, error) {
+	fs := flag.NewFlagSet("regex-tui", flag.ContinueOnError)
 
-	text := flag.String("text", "", "Initial text subject")
-	flag.StringVar(text, "t", "", "Initial text subject (shorthand)")
+	empty := fs.Bool("empty", false, "Start with empty expression and text")
+	fs.BoolVar(empty, "e", false, "Start with empty expression and text (shorthand)")
 
-	noGlobal := flag.Bool("no-global", false, "Disable global flag (match only first occurrence)")
+	regex := fs.String("regex", "", "Initial regex pattern")
+	fs.StringVar(regex, "r", "", "Initial regex pattern (shorthand)")
 
-	insensitive := flag.Bool("insensitive", false, "Enable case-insensitive flag")
+	text := fs.String("text", "", "Initial text subject")
+	fs.StringVar(text, "t", "", "Initial text subject (shorthand)")
 
-	regexp2 := flag.Bool("regexp2", false, "Use regexp2 engine (partial PCRE compatibility)")
+	noGlobal := fs.Bool("no-global", false, "Disable global flag (match only first occurrence)")
+	insensitive := fs.Bool("insensitive", false, "Enable case-insensitive flag")
+	regexp2 := fs.Bool("regexp2", false, "Use regexp2 engine (partial PCRE compatibility)")
+	noWhitespaces := fs.Bool("no-whitespaces", false, "Disable whitespace visualization")
 
-	noWhitespaces := flag.Bool("no-whitespaces", false, "Disable whitespace visualization")
+	if err := fs.Parse(args); err != nil {
+		return screen.Config{}, err
+	}
 
-	flag.Parse()
-
-	if hasStdin() && *text != "" {
-		log.Fatal("error: cannot use --text/-t flag when reading from stdin")
+	if stdinIsPipe && *text != "" {
+		return screen.Config{}, errTextWithStdin
 	}
 
 	var regexExpression string
@@ -81,10 +96,10 @@ func getInitialConfig() screen.Config {
 	}
 
 	var textSubject string
-	if hasStdin() {
-		data, err := io.ReadAll(os.Stdin)
+	if stdinIsPipe {
+		data, err := io.ReadAll(stdin)
 		if err != nil {
-			log.Fatalf("failed to read from stdin: %v\n", err)
+			return screen.Config{}, fmt.Errorf("failed to read from stdin: %w", err)
 		}
 		textSubject = string(data)
 	} else if *text != "" {
@@ -93,15 +108,12 @@ func getInitialConfig() screen.Config {
 		textSubject = defaultText
 	}
 
-	global := !*noGlobal
-	whitespaces := !*noWhitespaces
-
 	return screen.Config{
 		InitialExpression: regexExpression,
 		InitialSubject:    textSubject,
-		Global:            global,
+		Global:            !*noGlobal,
 		Insensitive:       *insensitive,
 		Regexp2:           *regexp2,
-		Whitespaces:       whitespaces,
-	}
+		Whitespaces:       !*noWhitespaces,
+	}, nil
 }
