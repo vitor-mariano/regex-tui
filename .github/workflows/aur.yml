@@ -1,0 +1,127 @@
+name: Publish AUR
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to publish to AUR (e.g. v1.2.3)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aur-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Update AUR package
+    if: github.repository == 'vitor-mariano/regex-tui'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    container:
+      image: archlinux:latest
+    defaults:
+      run:
+        shell: bash
+    env:
+      HOME: /root
+      AUR_REMOTE: ssh://aur@aur.archlinux.org/regex-tui.git
+      TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.event.release.tag_name }}
+      REPOSITORY: ${{ github.repository }}
+      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Install packaging tools
+        run: |
+          set -euo pipefail
+          pacman -Syu --noconfirm --needed curl git openssh base-devel pacman-contrib
+
+      - name: Configure SSH for AUR
+        env:
+          AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${AUR_SSH_PRIVATE_KEY:-}" ]]; then
+            echo "::error::Missing secret AUR_SSH_PRIVATE_KEY."
+            exit 1
+          fi
+          git clone --depth 1 --branch "$DEFAULT_BRANCH" \
+            "https://github.com/${REPOSITORY}.git" /tmp/regex-tui-src
+          install -d -m 700 /root/.ssh
+          # OpenSSH rejects keys that do not end with a newline.
+          printf '%s\n' "${AUR_SSH_PRIVATE_KEY//$'\r'/}" > /root/.ssh/id_aur
+          chmod 600 /root/.ssh/id_aur
+          install -m 644 /tmp/regex-tui-src/.github/workflows/aur.known_hosts /root/.ssh/known_hosts
+          echo "GIT_SSH_COMMAND=ssh -i /root/.ssh/id_aur -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=/root/.ssh/known_hosts" >> "$GITHUB_ENV"
+
+      - name: Resolve package version
+        id: ver
+        run: |
+          set -euo pipefail
+          if [[ -z "${TAG:-}" ]]; then
+            echo "::error::No release tag. Pass workflow_dispatch input tag (e.g. v1.2.3)."
+            exit 1
+          fi
+          PKGVER="${TAG#v}"
+          if [[ ! "$PKGVER" =~ ^[0-9]+(\.[0-9]+)+$ ]]; then
+            echo "::error::Unexpected package version '${PKGVER}' from tag '${TAG}'."
+            exit 1
+          fi
+          curl -fsSL \
+            -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${REPOSITORY}/releases/tags/v${PKGVER}" \
+            >/dev/null
+          echo "pkgver=${PKGVER}" >> "$GITHUB_OUTPUT"
+
+      - name: Clone AUR package
+        run: |
+          set -euo pipefail
+          git clone "$AUR_REMOTE" /tmp/regex-tui-aur
+          git config --global --add safe.directory /tmp/regex-tui-aur
+
+      - name: Bump pkgver
+        env:
+          PKGVER: ${{ steps.ver.outputs.pkgver }}
+        run: |
+          set -euo pipefail
+          cd /tmp/regex-tui-aur
+          sed -i "s/^pkgver=.*/pkgver=${PKGVER}/" PKGBUILD
+          sed -i "s/^pkgrel=.*/pkgrel=1/" PKGBUILD
+
+      - name: Refresh checksums and .SRCINFO
+        run: |
+          set -euo pipefail
+          if ! id builduser >/dev/null 2>&1; then
+            useradd -m -s /bin/bash builduser
+          fi
+          # Last OPTIONS assignment wins. printsrcinfo does not build binaries,
+          # so a narrow override is enough to keep a debug split out of .SRCINFO.
+          echo 'OPTIONS=(!debug)' >> /etc/makepkg.conf
+          chown -R builduser:builduser /tmp/regex-tui-aur
+          runuser -u builduser -- bash -euo pipefail -c '
+            cd /tmp/regex-tui-aur
+            updpkgsums
+            makepkg --printsrcinfo > .SRCINFO
+          '
+
+      - name: Commit and push
+        env:
+          PKGVER: ${{ steps.ver.outputs.pkgver }}
+        run: |
+          set -euo pipefail
+          cd /tmp/regex-tui-aur
+          git config user.name "Vitor Mariano"
+          git config user.email "vitor.mariano@gmail.com"
+          git add PKGBUILD .SRCINFO
+          if git diff --cached --quiet; then
+            echo "AUR package already at ${PKGVER}."
+            exit 0
+          fi
+          git commit -m "Update to ${PKGVER}"
+          git push origin HEAD
