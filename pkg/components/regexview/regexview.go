@@ -244,8 +244,8 @@ func (m *Model) View() string {
 	var matches [][]int
 	if m.global {
 		matches = m.expression.FindAllStringIndex(m.value, -1)
-	} else {
-		matches = [][]int{m.expression.FindStringIndex(m.value)}
+	} else if idx := m.expression.FindStringIndex(m.value); idx != nil {
+		matches = [][]int{idx}
 	}
 	for i, match := range matches {
 		s := &evenMatchStyle

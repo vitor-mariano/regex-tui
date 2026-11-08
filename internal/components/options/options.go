@@ -22,7 +22,7 @@ type Model struct {
 
 func New() *Model {
 	return &Model{
-		options:             multiselect.New([]string{
+		options: multiselect.New([]string{
 			GlobalOption,
 			InsensitiveOption,
 			Regexp2Option,
@@ -42,7 +42,6 @@ func (m *Model) Open() {
 
 func (m *Model) OnToggle(onToggle func(item string, selected bool)) {
 	m.options.OnToggle(onToggle)
-	m.options.SetSelected(GlobalOption)
 }
 
 func (m *Model) SetSelected(items ...string) {
